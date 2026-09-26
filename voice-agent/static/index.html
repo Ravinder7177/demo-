@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brightside Dental · Voice receptionist</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --porcelain: #EEF4F2;
+    --spruce: #1F3A3D;
+    --sun: #F2B544;
+    --white: #FFFFFF;
+    --muted: #5E7476;
+    --line: #D3E0DC;
+    --mint: #D7EAE4;
+    --danger: #A5392B;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh;
+    font-family: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--porcelain); color: var(--spruce);
+    font-size: 16px; line-height: 1.55;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 32px 24px 48px; }
+  header { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap; margin-bottom: 40px; }
+  .brand { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.01em; }
+  .brand span { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: var(--sun); margin-right: 8px; }
+  .sub { color: var(--muted); font-size: 0.95rem; }
+
+  .layout { display: grid; grid-template-columns: minmax(280px, 380px) 1fr; gap: 40px; align-items: start; }
+  @media (max-width: 760px) { .layout { grid-template-columns: 1fr; } }
+
+  .call { text-align: center; padding: 16px 0; }
+  .call h1 { font-size: 2rem; line-height: 1.15; margin: 0 0 8px; letter-spacing: -0.02em; font-weight: 700; }
+  .call p.lede { color: var(--muted); margin: 0 auto 36px; max-width: 30ch; }
+
+  .orb {
+    position: relative; width: 176px; height: 176px; border-radius: 50%;
+    border: none; cursor: pointer; background: var(--spruce); color: var(--white);
+    font: inherit; font-weight: 500; font-size: 1.05rem;
+    box-shadow: 0 0 0 10px var(--mint);
+    transition: transform .15s ease, background .2s ease;
+  }
+  .orb:hover { transform: scale(1.02); }
+  .orb:focus-visible { outline: 3px solid var(--sun); outline-offset: 14px; }
+  .orb::after {
+    content: ""; position: absolute; inset: -10px; border-radius: 50%;
+    border: 3px solid var(--sun); opacity: 0; pointer-events: none;
+  }
+  .orb[data-state="listening"]::after { opacity: 1; }
+  .orb[data-state="speaking"] { background: #2C5256; }
+  .orb[data-state="thinking"] { cursor: progress; }
+  .orb[data-state="thinking"]::after { opacity: .5; border-style: dashed; }
+  @media (prefers-reduced-motion: no-preference) {
+    .orb[data-state="listening"]::after { animation: breathe 1.6s ease-in-out infinite; }
+    .orb[data-state="thinking"]::after { animation: spin 3s linear infinite; }
+  }
+  @keyframes breathe { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.08); opacity: .45; } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .status { margin: 28px 0 6px; font-weight: 500; min-height: 1.5em; }
+  .hint { color: var(--muted); font-size: 0.9rem; min-height: 1.4em; margin: 0; }
+  .end {
+    margin-top: 20px; background: transparent; border: 1px solid var(--line); color: var(--spruce);
+    padding: 8px 18px; border-radius: 999px; font: inherit; font-size: 0.9rem; cursor: pointer;
+  }
+  .end:hover { border-color: var(--spruce); }
+  .end[hidden] { display: none; }
+
+  .panel { background: var(--white); border: 1px solid var(--line); border-radius: 18px; display: flex; flex-direction: column; min-height: 460px; }
+  .panel-head { padding: 16px 20px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
+  .panel-head h2 { font-size: 1rem; margin: 0; font-weight: 700; }
+  .panel-head small { color: var(--muted); }
+  #log { list-style: none; margin: 0; padding: 20px; flex: 1; overflow-y: auto; max-height: 56vh; display: flex; flex-direction: column; gap: 12px; }
+  #log:empty::before { content: "Start a call and Maya's conversation with you will appear here."; color: var(--muted); }
+  .msg { max-width: 82%; padding: 10px 14px; border-radius: 14px; }
+  .msg.agent { background: var(--mint); border-bottom-left-radius: 4px; align-self: flex-start; }
+  .msg.you { background: var(--spruce); color: var(--white); border-bottom-right-radius: 4px; align-self: flex-end; }
+  .msg.interim { opacity: .6; font-style: italic; }
+  .msg.tool { align-self: flex-start; max-width: 100%; padding: 4px 0 4px 12px; border-left: 3px solid var(--sun); border-radius: 0; font-size: 0.85rem; color: var(--muted); font-family: ui-monospace, "SF Mono", Consolas, monospace; overflow-wrap: anywhere; }
+  .msg.system { align-self: center; font-size: 0.85rem; color: var(--danger); text-align: center; }
+  .who { display: block; font-size: 0.75rem; font-weight: 700; opacity: .7; margin-bottom: 2px; }
+
+  .typer { display: flex; gap: 8px; padding: 14px; border-top: 1px solid var(--line); }
+  .typer input { flex: 1; min-width: 0; font: inherit; padding: 10px 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--porcelain); color: var(--spruce); }
+  .typer input:focus-visible, .typer button:focus-visible, .end:focus-visible { outline: 2px solid var(--sun); outline-offset: 2px; }
+  .typer button { font: inherit; font-weight: 500; padding: 10px 18px; border-radius: 999px; border: none; background: var(--spruce); color: var(--white); cursor: pointer; }
+  .typer button:disabled, .typer input:disabled { opacity: .5; cursor: not-allowed; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand"><span aria-hidden="true"></span>Brightside Dental</div>
+    <div class="sub">Voice receptionist demo</div>
+  </header>
+
+  <div class="layout">
+    <section class="call" aria-label="Call controls">
+      <h1>Call Maya</h1>
+      <p class="lede">Book, move, or cancel an appointment, or ask about hours and insurance.</p>
+      <button class="orb" id="orb" data-state="idle">Start call</button>
+      <p class="status" id="status" aria-live="polite">Ready when you are</p>
+      <p class="hint" id="hint">Uses your microphone. Works best in Chrome or Edge.</p>
+      <button class="end" id="endBtn" hidden>End call</button>
+    </section>
+
+    <section class="panel" aria-label="Conversation">
+      <div class="panel-head">
+        <h2>Conversation</h2>
+        <small>Tool calls shown in yellow</small>
+      </div>
+      <ul id="log" aria-live="polite"></ul>
+      <div class="typer">
+        <input id="textIn" type="text" placeholder="Or type what you'd say" autocomplete="off" disabled aria-label="Type a message to Maya">
+        <button id="sendBtn" disabled>Send</button>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const $ = (id) => document.getElementById(id);
+const orb = $("orb"), statusEl = $("status"), hintEl = $("hint"), log = $("log");
+const endBtn = $("endBtn"), textIn = $("textIn"), sendBtn = $("sendBtn");
+
+let sessionId = null, inCall = false, state = "idle";
+let recognition = null, interimEl = null, voice = null, micBlocked = false;
+let turn = 0;  // stops an interrupted turn from resuming after a newer one starts
+
+const LABELS = {
+  idle: ["Start call", "Ready when you are", "Uses your microphone. Works best in Chrome or Edge."],
+  connecting: ["Connecting", "Connecting…", ""],
+  listening: ["Listening", "Listening…", "Speak naturally. Tap the circle when you're done."],
+  thinking: ["Thinking", "Maya is thinking…", ""],
+  speaking: ["Tap to interrupt", "Maya is speaking", "Tap the circle to cut in."],
+  typing: ["Type below", "Voice isn't available here", "Type your replies in the box instead."],
+};
+
+function setState(next) {
+  state = next;
+  const [btn, status, hint] = LABELS[next];
+  orb.dataset.state = next;
+  orb.textContent = btn;
+  statusEl.textContent = status;
+  hintEl.textContent = hint;
+  endBtn.hidden = !inCall;
+  textIn.disabled = sendBtn.disabled = !inCall || next === "thinking" || next === "connecting";
+}
+
+function addLine(kind, text) {
+  const li = document.createElement("li");
+  li.className = `msg ${kind}`;
+  if (kind === "agent" || kind === "you") {
+    const who = document.createElement("span");
+    who.className = "who";
+    who.textContent = kind === "agent" ? "Maya" : "You";
+    li.appendChild(who);
+  }
+  li.appendChild(document.createTextNode(text));
+  log.appendChild(li);
+  log.scrollTop = log.scrollHeight;
+  return li;
+}
+
+function showInterim(text) {
+  if (!interimEl) interimEl = addLine("you", "");
+  interimEl.classList.add("interim");
+  interimEl.lastChild.textContent = text;
+  log.scrollTop = log.scrollHeight;
+}
+function clearInterim() { interimEl?.remove(); interimEl = null; }
+
+// ---------- Text to speech ----------
+function pickVoice() {
+  const voices = speechSynthesis.getVoices();
+  const preferred = ["Google US English", "Samantha", "Microsoft Aria", "Microsoft Jenny", "Karen", "Moira"];
+  for (const name of preferred) {
+    const v = voices.find((x) => x.name.includes(name));
+    if (v) return v;
+  }
+  return voices.find((v) => v.lang.startsWith("en")) || null;
+}
+voice = pickVoice();
+speechSynthesis.onvoiceschanged = () => { voice = pickVoice(); };
+
+function speak(text) {
+  return new Promise((resolve) => {
+    if (!text) return resolve();
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    if (voice) u.voice = voice;
+    u.rate = 1.03;
+    u.onend = resolve;
+    u.onerror = resolve;  // also fires when interrupted
+    setState("speaking");
+    speechSynthesis.speak(u);
+  });
+}
+
+// ---------- Speech to text ----------
+function listen() {
+  if (!inCall) return;
+  if (!SR || micBlocked) { setState("typing"); textIn.focus(); return; }
+
+  let finalText = "";
+  recognition = new SR();
+  recognition.lang = "en-US";
+  recognition.interimResults = true;
+  recognition.continuous = false;
+
+  recognition.onresult = (e) => {
+    let interim = "";
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const r = e.results[i];
+      if (r.isFinal) finalText += r[0].transcript;
+      else interim += r[0].transcript;
+    }
+    showInterim((finalText + " " + interim).trim());
+  };
+  recognition.onerror = (e) => {
+    if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+      micBlocked = true;
+      addLine("system", "Microphone access is blocked. Allow it in the address bar, or type below.");
+    } else if (e.error === "network") {
+      micBlocked = true;
+      addLine("system", "Speech recognition needs an internet connection. You can type instead.");
+    }
+  };
+  recognition.onend = () => {
+    recognition = null;
+    clearInterim();
+    if (!inCall) return;
+    const text = finalText.trim();
+    if (text) send(text);
+    else listen();  // heard nothing, keep listening
+  };
+
+  setState("listening");
+  try { recognition.start(); } catch { setState("typing"); }
+}
+
+function stopListeningSilently() {
+  if (!recognition) return;
+  recognition.onend = null;
+  recognition.onresult = null;
+  recognition.abort();
+  recognition = null;
+  clearInterim();
+}
+
+// ---------- Conversation ----------
+async function api(path, body) {
+  const res = await fetch(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body || {}),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
+  return data;
+}
+
+async function startCall() {
+  inCall = true;
+  const myTurn = ++turn;
+  log.innerHTML = "";
+  setState("connecting");
+  try {
+    const data = await api("/api/start");
+    sessionId = data.session_id;
+    addLine("agent", data.reply);
+    await speak(data.reply);
+    if (myTurn === turn) listen();
+  } catch (err) {
+    addLine("system", `${err.message}. Is the Python server running?`);
+    endCall();
+  }
+}
+
+async function send(text) {
+  const myTurn = ++turn;
+  addLine("you", text);
+  setState("thinking");
+  try {
+    const data = await api("/api/message", { session_id: sessionId, text });
+    for (const t of data.tool_calls || []) {
+      addLine("tool", `${t.name} ${JSON.stringify(t.input)}`);
+    }
+    if (data.reply) addLine("agent", data.reply);
+    if (!inCall || myTurn !== turn) return;
+    await speak(data.reply);
+    if (!inCall || myTurn !== turn) return;
+    if (data.call_ended) {
+      addLine("system", data.call_ended === "transfer_to_staff" ? "Transferred to staff (demo), call ended." : "Call ended.");
+      endCall();
+    } else {
+      listen();
+    }
+  } catch (err) {
+    addLine("system", err.message);
+    if (inCall && myTurn === turn) listen();
+  }
+}
+
+function endCall() {
+  inCall = false;
+  turn++;
+  sessionId = null;
+  stopListeningSilently();
+  speechSynthesis.cancel();
+  setState("idle");
+}
+
+orb.addEventListener("click", () => {
+  if (state === "idle") startCall();
+  else if (state === "speaking") speechSynthesis.cancel();  // barge in; speak() resolves, then we listen
+  else if (state === "listening" && recognition) recognition.stop();  // finish the utterance now
+});
+endBtn.addEventListener("click", () => { addLine("system", "You ended the call."); endCall(); });
+
+function sendTyped() {
+  const text = textIn.value.trim();
+  if (!text || !inCall) return;
+  textIn.value = "";
+  stopListeningSilently();
+  speechSynthesis.cancel();
+  send(text);
+}
+sendBtn.addEventListener("click", sendTyped);
+textIn.addEventListener("keydown", (e) => { if (e.key === "Enter") sendTyped(); });
+
+if (!SR) hintEl.textContent = "This browser can't do speech recognition. You can still type.";
+</script>
+</body>
+</html>
